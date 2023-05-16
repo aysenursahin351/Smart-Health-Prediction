@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h2>Input Form</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+
+    <br>
+
+    <button type="submit" class="btn btn-primary">Submit</button>
+  </form>
+
+  {% if processed_input %}
+    <h3>Processed Input:</h3>
+    <p>{{ processed_input }}</p>
+  {% endif %}
+
+  {% if description %}
+    <h3>Description:</h3>
+    <p>{{ description }}</p>
+  {% endif %}
+{% endblock %}
