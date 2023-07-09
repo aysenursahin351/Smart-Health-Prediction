@@ -1,87 +1,98 @@
 from django.http import HttpResponseRedirect
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
-import csv
 from sklearn.ensemble import RandomForestRegressor
-import numpy as np
 from sklearn.svm import SVR
 from sklearn.preprocessing import StandardScaler
-from sklearn.tree import DecisionTreeRegressor 
+from sklearn.tree import DecisionTreeRegressor
 import plotly.graph_objects as go
 
 def index(request):
-    return render(request, 'index.html')  
+    return render(request, 'index.html')
 
 def process_file(request):
-    return render(request, 'calculation.html')   
+    return render(request, 'calculation.html')
 
 def train_model(model, X_train, y_train):
     """Modeli eğitir."""
     model.fit(X_train, y_train)
 
-def prediction_graph(decision_tree_result, logistic_regression_result, random_forest_result, svm_result, high_bp, high_chol, chol_check):
-       
-    x = ['','Decision Tree', 'Lineer Regression', 'Random Forest Regression', 'Support Vector Result']
+def prediction_graph(decision_tree_result, logistic_regression_result, random_forest_result, svm_result, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age):
+    x = ['', 'Decision Tree', 'Linear Regression', 'Random Forest Regression', 'Support Vector Result']
     y2 = [0, decision_tree_result, logistic_regression_result, random_forest_result, svm_result]
 
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=x, y=y2, name='Predicted Diabetes'))
+    fig.add_trace(go.Bar(x=x, y=y2, name='Predicted Outcome'))
     fig.update_layout(title='Prediction Model Comparison', xaxis_title='Model', yaxis_title='Probability')
 
     plot_div = fig.to_html(full_html=False)
-    
+
     return plot_div
 
-def getResultRandomForestRegression(X, y, high_bp, high_chol, chol_check):
-    
+def getResultRandomForestRegression(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age):
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     model = RandomForestRegressor()
     model.fit(X_train, y_train)
 
-    input_data = np.array([[high_bp, high_chol, chol_check]])
+    input_data = [[pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age]]
     prediction = model.predict(input_data)
     pred_formatted = "{:.2f}".format(prediction[0])
 
     return pred_formatted
 
+def getResultSVM(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-def getResultLinearRegression(X, y, high_bp, high_chol, chol_check):
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+
+    svm = SVR(kernel='rbf')
+    svm.fit(X_scaled, y)
+
+    X_test = [[pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age]]
+    X_test_scaled = scaler.transform(X_test)
+    y_pred = svm.predict(X_test_scaled)
+    pred_formatted = "{:.2f}".format(y_pred[0])
+    return pred_formatted
+
+def getResultLinearRegression(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     model = LinearRegression()
     model.fit(X_train, y_train)
 
-    sales_pred = model.predict([[high_bp, high_chol, chol_check]])
-    sales_pred_formatted = "{:.2f}".format(sales_pred[0])
+    outcome_pred = model.predict([[pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age]])
+    outcome_pred_formatted = "{:.2f}".format(outcome_pred[0])
 
     y_pred = model.predict(X_test)
     accuracy = r2_score(y_test, y_pred)
 
-    return sales_pred_formatted
+    return outcome_pred_formatted
 
 
-def getResultDecisionTree(X, y, high_bp, high_chol, chol_check):
+def getResultDecisionTree(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     model = DecisionTreeRegressor(random_state=1)
     model.fit(X, y)
 
-    inputs = [[high_bp, high_chol, chol_check]]
-    sales_pred = model.predict(inputs)[0]
+    inputs = [[pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age]]
+    outcome_pred = model.predict(inputs)[0]
 
     y_pred = model.predict(X)
     accuracy = r2_score(y, y_pred)
 
-    return sales_pred
+    return outcome_pred
 
 
-def getResultSupportVectorRegression(X, y, high_bp, high_chol, chol_check):
+def getResultSupportVectorRegression(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -91,48 +102,46 @@ def getResultSupportVectorRegression(X, y, high_bp, high_chol, chol_check):
     svr = SVR(kernel='linear')
     svr.fit(X_scaled, y)
 
-    X_test = [[high_bp, high_chol, chol_check]]
+    X_test = [[pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age]]
     X_test_scaled = scaler.transform(X_test)
     y_pred = svr.predict(X_test_scaled)
     pred_formatted = "{:.2f}".format(y_pred[0])
 
     return pred_formatted
-def makeSalesPredict(request):
-    if request.method == 'POST':
-        if request.FILES:
-            myfile = request.FILES['file']
 
-           # Load data into a pandas DataFrame
+
+def makePredict(request):
+    if request.FILES:
+        myfile = request.FILES['file']
+        
         df = pd.read_csv(myfile)
-        # Split data into x and y
-        X = df[['HighBp', 'HighChol', 'CholCheck']]
-        y = df['Diabetes']
-        # Split data into training and testing sets
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-     
+        # Split data into X and y
+        X = df[['Pregnancies', 'Glucose', 'BloodPressure', 'SkinThickness', 'Insulin', 'BMI', 'DiabetesPedigreeFunction', 'Age']]
+        y = df['Outcome']
+        pregnancies = float(request.POST['pregnancies'])
+        glucose = float(request.POST['glucose'])
+        blood_pressure = float(request.POST['blood_pressure'])
+        skin_thickness = float(request.POST['skin_thickness'])
+        insulin = float(request.POST['insulin'])
+        bmi = float(request.POST['bmi'])
+        diabetes_pedigree_function = float(request.POST['diabetes_pedigree_function'])
+        age = float(request.POST['age'])
+    if 'pregnancies' in request.POST and 'glucose' in request.POST and 'blood_pressure' in request.POST and 'skin_thickness'in request.POST and 'insulin' in request.POST and 'bmi' in request.POST and 'diabetes_pedigree_function'in request.POST and 'insulin' in request.POST and 'age' in request.POST:
+    
+        decision_tree_result = getResultDecisionTree(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age)
+        logistic_regression_result = getResultLinearRegression(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age)
+        random_forest_result = getResultRandomForestRegression(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age)
+        svm_result = getResultSVM(X, y, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age)
 
-        if 'high_bp' in request.POST and 'high_chol' in request.POST and 'chol_check' in request.POST:
-            # Get inputs from user
-            high_bp = float(request.POST['high_bp'])
-            high_chol = float(request.POST['high_chol'])
-            chol_check = float(request.POST['chol_check']) 
+        prediction_graph_returned = prediction_graph(decision_tree_result, logistic_regression_result, random_forest_result, svm_result, pregnancies, glucose, blood_pressure, skin_thickness, insulin, bmi, diabetes_pedigree_function, age)
 
-            decision_tree_result = getResultDecisionTree(X, y, high_bp, high_chol, chol_check)
-            logistic_regression_result = getResultLinearRegression(X, y, high_bp, high_chol, chol_check)
-            random_forest_result = getResultRandomForestRegression(X, y, high_bp, high_chol, chol_check)
-            svm_result = getResultSupportVectorRegression(X, y, high_bp, high_chol, chol_check) 
-            
-            prediction_graph_returned = prediction_graph(decision_tree_result, logistic_regression_result, random_forest_result, 
-                                                       svm_result, high_bp, high_chol, chol_check) 
-
-            return render(request, 'calculation.html', {'randomForestResult': random_forest_result, 
-                                                       'supportVectorResult': svm_result, 
-                                                       'linearRegressionResult': logistic_regression_result, 
-                                                       'decisionTreeResult': decision_tree_result, 
-                                                       'high_bp': high_bp, 'high_chol': high_chol, 
-                                                       'prediction_graph': prediction_graph_returned }) 
-            
-        else:
-                return render(request, 'calculation.html',context={"messageCode":2,"message":"Lütfen bir dosya yükleyiniz"})  #messageCode 1 başarılı 2 hatalı demek 
+        return render(request, 'calculation.html', {'randomForestResult': random_forest_result, 
+                                                     'supportVectorResult': svm_result, 
+                                                     'linearRegressionResult': logistic_regression_result, 
+                                                     'decisionTreeResult': decision_tree_result, 
+                                                     'pregnancies': pregnancies, 'glucose': glucose, 
+                                                     'blood_pressure': blood_pressure, 'skin_thickness': skin_thickness, 
+                                                     'insulin': insulin, 'bmi': bmi, 'diabetes_pedigree_function': diabetes_pedigree_function, 'age': age, 
+                                                     'prediction_graph': prediction_graph_returned })
     else:
         return render(request, 'calculation.html')
